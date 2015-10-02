@@ -1,27 +1,21 @@
-var game = new Phaser.Game(1280, 700, Phaser.CANVAS, '');
+var game = new Phaser.Game(1280, 700, Phaser.CANVAS, 'game');
 
     var PhaserGame = function () {
 
         this.player = null;
         this.platforms = null;
-        this.sky = null;
-
         this.facing = 'left';
-        this.edgeTimer = 0;
         this.jumpTimer = 0;
-
-        this.wasStanding = false;
         this.cursors = null;
 
     };
 
     PhaserGame.prototype = {
+
         init: function () {
             this.game.renderer.renderSession.roundPixels = true;
-            this.world.resize(1280, 2000);
             this.physics.startSystem(Phaser.Physics.ARCADE);
-            this.physics.arcade.gravity.y = 350;
-            this.physics.arcade.skipQuadTree = false;
+            this.physics.arcade.gravity.y = 800;
         },
 
         preload: function () {
@@ -41,38 +35,20 @@ var game = new Phaser.Game(1280, 700, Phaser.CANVAS, '');
         create: function () {
             this.add.sprite(0, 0, 'background');
 
-            this.sky = this.add.tileSprite(0, 0, 640, 480, 'background');
-            this.sky.fixedToCamera = true;
-
             this.platforms = this.add.physicsGroup();
 
-            var x = 0;
-            var y = 64;
-
-            for (var i = 0; i < 19; i++) {
-                var platform = this.platforms.create(x, y, 'platform');
-
-                //  Set a random speed between 50 and 200
-                platform.body.velocity.x = this.rnd.between(100, 150);
-
-                //  Inverse it?
-                if (Math.random() > 0.5) {
-                    platform.body.velocity.x *= -1;
-                }
-
-                x += 200;
-
-                if (x >= 600) {
-                    x = 0;
-                }
-
-                y += 104;
-            }
+            this.platforms.create(0, 64, 'platform');
+            this.platforms.create(200, 180, 'platform');
+            this.platforms.create(400, 296, 'platform');
+            this.platforms.create(600, 412, 'platform');
+            this.platforms.create(800, 450, 'platform');
+            this.platforms.create(1000, 500, 'platform');
 
             this.platforms.setAll('body.allowGravity', false);
             this.platforms.setAll('body.immovable', true);
+            this.platforms.setAll('body.velocity.x', 100);
 
-            this.player = this.add.sprite(320, 1952, 'dude');
+            this.player = this.add.sprite(320, 432, 'dude');
 
             this.physics.arcade.enable(this.player);
 
@@ -83,9 +59,8 @@ var game = new Phaser.Game(1280, 700, Phaser.CANVAS, '');
             this.player.animations.add('turn', [4], 20, true);
             this.player.animations.add('right', [5, 6, 7, 8], 10, true);
 
-            this.camera.follow(this.player);
-
             this.cursors = this.input.keyboard.createCursorKeys();
+
         },
 
         wrapPlatform: function (platform) {
@@ -95,11 +70,12 @@ var game = new Phaser.Game(1280, 700, Phaser.CANVAS, '');
             else if (platform.body.velocity.x > 0 && platform.x >= 640) {
                 platform.x = -160;
             }
+
         },
 
         update: function () {
-            this.sky.tilePosition.y = -(this.camera.y * 0.7);
             this.platforms.forEach(this.wrapPlatform, this);
+
             this.physics.arcade.collide(this.player, this.platforms, this.setFriction, null, this);
 
             //  Do this AFTER the collide check, or we won't have blocked/touching set
@@ -110,7 +86,8 @@ var game = new Phaser.Game(1280, 700, Phaser.CANVAS, '');
             if (this.cursors.left.isDown) {
                 this.player.body.velocity.x = -200;
 
-                if (this.facing !== 'left') {
+                if (this.facing !== 'left')
+                {
                     this.player.play('left');
                     this.facing = 'left';
                 }
@@ -124,8 +101,7 @@ var game = new Phaser.Game(1280, 700, Phaser.CANVAS, '');
                     this.facing = 'right';
                 }
             }
-            else
-            {
+            else {
                 if (this.facing !== 'idle') {
                     this.player.animations.stop();
 
@@ -139,20 +115,11 @@ var game = new Phaser.Game(1280, 700, Phaser.CANVAS, '');
                     this.facing = 'idle';
                 }
             }
-
-            //  No longer standing on the edge, but were
-            //  Give them a 250ms grace period to jump after falling
-            if (!standing && this.wasStanding) {
-                this.edgeTimer = this.time.time + 250;
-            }
-
-            //  Allowed to jump?
-            if ((standing || this.time.time <= this.edgeTimer) && this.cursors.up.isDown && this.time.time > this.jumpTimer) {
+            
+            if (standing && this.cursors.up.isDown && this.time.time > this.jumpTimer) {
                 this.player.body.velocity.y = -500;
                 this.jumpTimer = this.time.time + 750;
             }
-
-            this.wasStanding = standing;
 
         }
 
